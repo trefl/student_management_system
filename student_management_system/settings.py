@@ -129,3 +129,12 @@ STATIC_URL = '/static/'
 AUTH_USER_MODEL="student_management_app.CustomUser"
 AUTHENTICATION_BACKENDS=['student_management_app.EmailBackEnd.EmailBackEnd']
 
+# EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
+# EMAIL_FILE_PATH = os.path.join(BASE_DIR, "sent_mails")
+
+EMAIL_HOST="smtp.gmail.com"
+EMAIL_PORT=587
+EMAIL_HOST_USER="email"
+EMAIL_HOST_PASSWORD="hasło"
+EMAIL_USE_TLS=True
+DEFAULT_FROM_EMAIL="Student management System"
