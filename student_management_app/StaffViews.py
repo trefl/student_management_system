@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 
 from student_management_app.models import Subjects, SessionYearModel, Students, Attendance, AttendanceReport, \
-    LeaveReportStaff, Staffs, FeedBackStaffs
+    LeaveReportStaff, Staffs, FeedBackStaffs, CustomUser
 
 
 def staff_home(request):
@@ -68,7 +68,9 @@ def save_attendance_data(request):
 def staff_update_attendance(request):
     subjects = Subjects.objects.filter(staff_id=request.user.id)
     session_year_id = SessionYearModel.object.all()
-    return render(request, "staff_template/staff_update_attendance.html", {"subjects": subjects, "session_year_id": session_year_id})
+    return render(request, "staff_template/staff_update_attendance.html",
+                  {"subjects": subjects, "session_year_id": session_year_id})
+
 
 @csrf_exempt
 def get_attendance_dates(request):
@@ -79,7 +81,8 @@ def get_attendance_dates(request):
     attendance = Attendance.objects.filter(subject_id=subject_obj, session_year_id=session_year_obj)
     attendance_obj = []
     for attendance_single in attendance:
-        data = {"id": attendance_single.id, "attendance_date": str(attendance_single.attendance_date), "session_year_id": attendance_single.session_year_id.id}
+        data = {"id": attendance_single.id, "attendance_date": str(attendance_single.attendance_date),
+                "session_year_id": attendance_single.session_year_id.id}
         attendance_obj.append(data)
 
     return JsonResponse(json.dumps(attendance_obj), safe=False)
@@ -90,26 +93,25 @@ def get_attendance_student(request):
     attendance_date = request.POST.get("attendance_date")
     attendance = Attendance.objects.get(id=attendance_date)
 
-
-    attendance_data = AttendanceReport.objects.filter(attendance_id = attendance)
+    attendance_data = AttendanceReport.objects.filter(attendance_id=attendance)
     list_data = []
 
     for student in attendance_data:
-        data_small = {"id": student.student_id.admin.id, "name": student.student_id.admin.first_name + " " + student.student_id.admin.last_name, "status":student.status}
+        data_small = {"id": student.student_id.admin.id,
+                      "name": student.student_id.admin.first_name + " " + student.student_id.admin.last_name,
+                      "status": student.status}
         list_data.append(data_small)
 
     return JsonResponse(json.dumps(list_data), content_type="application/json", safe=False)
+
 
 @csrf_exempt
 def save_updateattendance_data(request):
     student_ids = request.POST.get("student_ids")
     attendance_date = request.POST.get("attendance_date")
-    attendance=Attendance.objects.get(id=attendance_date)
-
-
+    attendance = Attendance.objects.get(id=attendance_date)
 
     json_sstudent = json.loads(student_ids)
-
 
     try:
 
@@ -137,7 +139,8 @@ def staff_apply_leave_save(request):
         leave_msg = request.POST.get("leave_msg")
         staff_obj = Staffs.objects.get(admin=request.user.id)
         try:
-            leave_report = LeaveReportStaff(staff_id=staff_obj, leave_date=leave_date, leave_message=leave_msg, leave_status=0)
+            leave_report = LeaveReportStaff(staff_id=staff_obj, leave_date=leave_date, leave_message=leave_msg,
+                                            leave_status=0)
             leave_report.save()
 
             messages.success(request, "Successfully Applied for Leave ")
@@ -145,7 +148,6 @@ def staff_apply_leave_save(request):
         except:
             messages.error(request, "Failed To Apply for Leave ")
             return HttpResponseRedirect(reverse("staff_apply_leave"))
-
 
 
 def staff_feedback(request):
@@ -169,3 +171,36 @@ def staff_feedback_save(request):
         except:
             messages.error(request, "Failed To Send Feedback")
             return HttpResponseRedirect(reverse("staff_feedback"))
+
+
+def staff_profile(request):
+    user = CustomUser.objects.get(id=request.user.id)
+    staff = Staffs.objects.get(admin=user)
+    return render(request, "staff_template/staff_profile.html", {"user": user, "staff": staff})
+
+
+def staff_profile_save(request):
+    if request.method != "POST":
+        return HttpResponseRedirect(reverse("staff_profile"))
+
+    else:
+        first_name = request.POST.get("first_name")
+        last_name = request.POST.get("last_name")
+        address = request.POST.get("address")
+        password = request.POST.get("password")
+        try:
+            customuser = CustomUser.objects.get(id=request.user.id)
+            customuser.first_name = first_name
+            customuser.last_name = last_name
+            if password != None and password != "":
+                customuser.set_password(password)
+            customuser.save()
+
+            staff = Staffs.objects.get(admin=customuser.id)
+            staff.address = address
+            staff.save()
+            messages.success(request, "Successfully Update Profile ")
+            return HttpResponseRedirect(reverse("staff_profile"))
+        except:
+            messages.error(request, "Successfully Update Profile")
+            return HttpResponseRedirect(reverse("staff_profile"))
